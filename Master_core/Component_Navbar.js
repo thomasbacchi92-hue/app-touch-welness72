@@ -1,24 +1,30 @@
-/* Master_core/Component_Navbar.js - FIX 404 DEFINITIVO (Percorsi Assoluti) */
+/* Master_core/Component_Navbar.js - FIX 404 (Motore Estrazione Path Relativo) */
 
 (function() {
-    // 1. MOTORE DI RICERCA RADICE ASSOLUTA (Antiproiettile)
-    function getAppRoot() {
+    // 1. MOTORE INFALLIBILE: Legge il path esatto scritto nel tuo file HTML
+    function getExactRootPath() {
         const scripts = document.getElementsByTagName('script');
         for (let i = 0; i < scripts.length; i++) {
-            const src = scripts[i].src || '';
-            const lowerSrc = src.toLowerCase();
-            // Cerca questo esatto file tra gli script caricati dalla pagina
-            if (lowerSrc.includes('master_core/component_navbar.js')) {
-                // Taglia la stringa per ottenere l'URL base esatto (es. http://tuoserver/cartella_app/)
-                const matchIdx = lowerSrc.indexOf('master_core/component_navbar.js');
-                return src.substring(0, matchIdx);
+            // Usa getAttribute per prendere la stringa grezza scritta nell'HTML
+            const rawSrc = scripts[i].getAttribute('src'); 
+            if (rawSrc && rawSrc.toLowerCase().includes('component_navbar.js')) {
+                // Cerca tutto quello che c'è prima di "Master_core"
+                const match = rawSrc.match(/(.*?)master_core\/component_navbar\.js/i);
+                if (match && match[1]) {
+                    return match[1]; // Restituirà esattamente "../" o "../../"
+                }
+                return './'; // Se è nella root principale
             }
         }
-        // Fallback di emergenza
-        return '/';
+        
+        // Fallback di Sicurezza d'emergenza
+        const path = window.location.pathname.toLowerCase();
+        if (path.includes('/operatoridisp/')) return '../../';
+        if (path.includes('/funzioni/') || path.includes('/piscina/') || path.includes('/impostazioni/')) return '../';
+        return './';
     }
 
-    window.twRootPath = getAppRoot();
+    window.twRootPath = getExactRootPath();
     
     // 2. Controllo Sessione
     window.checkGlobalSession = function() {
@@ -39,7 +45,7 @@
     };
     window.checkGlobalSession();
 
-    // 3. Sistema di Transizione Anti-Blocco
+    // 3. Sistema Anti-Blocco (Failsafe contro lo Schermo Nero)
     if (!document.getElementById('tw-page-transition-overlay')) {
         const overlayHtml = `
             <style>
@@ -58,6 +64,8 @@
         else document.addEventListener('DOMContentLoaded', () => document.body.insertAdjacentHTML('afterbegin', overlayHtml));
 
         window.addEventListener('load', () => { document.body.classList.add('tw-loaded'); });
+        
+        // SBLOCCO FORZATO: Rimuove l'overlay se la pagina ci mette più di 0.3s
         setTimeout(() => { if(document.body) document.body.classList.add('tw-loaded'); }, 300);
     }
 
@@ -65,9 +73,10 @@
         const overlay = document.getElementById('tw-page-transition-overlay');
         if (overlay) {
             document.body.classList.remove('tw-loaded');
-            overlay.style.opacity = '1'; overlay.style.pointerEvents = 'all';
+            overlay.style.opacity = '1'; 
+            overlay.style.pointerEvents = 'all';
             
-            // Failsafe: rimuove il blocco nero dopo 1.5s se il caricamento fallisce
+            // SBLOCCO EMERGENZA: Se c'è 404, rimuove il nero dopo 1.5 secondi
             setTimeout(() => { 
                 document.body.classList.add('tw-loaded'); 
                 overlay.style.opacity = '0'; 
@@ -86,7 +95,7 @@
 
         const path = window.location.pathname.toLowerCase();
         const search = window.location.search.toLowerCase();
-        const rootPath = window.twRootPath; // Ora è un URL assoluto perfetto
+        const rootPath = window.twRootPath;
         
         let activePage = 'agenda';
         if (path.includes('anagrafica')) activePage = 'crm';
@@ -103,7 +112,8 @@
             let finalClass = "nav-btn" + (isActive ? " btn-main" : "");
             let finalStyle = isActive ? (customActiveStyle ? customActiveStyle.bg : "background: rgba(56, 189, 248, 0.1); border-color: rgba(56, 189, 248, 0.5); color: #fff;") : "";
             let iconStyle = isActive ? (customActiveStyle ? customActiveStyle.icon : "color: var(--accent);") : "";
-            // Collega l'URL assoluto pulito
+            
+            // Applica la radice perfetta calcolata
             return `<button type="button" class="${finalClass}" style="${finalStyle}" onclick="window.twNavigate('${rootPath}${link}')"><i class="material-icons-round" style="${iconStyle}">${icon}</i> <span>${text}</span></button>`;
         };
 
